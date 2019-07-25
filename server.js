@@ -37,6 +37,9 @@ mongoose.connect(db, {
 // instantiate express application object
 const app = express()
 
+const server = require("http").Server(app);
+const socketIO = require("socket.io");
+
 // set CORS headers on response from this API using the `cors` NPM package
 // `CLIENT_ORIGIN` is an environment variable that will be set on Heroku
 app.use(cors({ origin: process.env.CLIENT_ORIGIN || `http://localhost:${reactPort}`}))
@@ -71,10 +74,60 @@ app.use(userRoutes)
 // passed any error messages from them
 app.use(errorHandler)
 
-// run API on designated port (3000 in this case)
-app.listen(port, () => {
-  console.log('listening on port ' + port)
-})
+const io = socketIO(server);
 
+let onlineUsers = [];
+
+io.on("connection", socket => {
+  console.log("New client connected");
+
+  socket.on("subscribe", function(room) {
+    console.log("joining room", room);
+    socket.join(room);
+  });
+/*
+ socket.on('send', function(data) {
+  io.sockets.in(data.room).emit("message", data);
+ }
+  // in client //  socket.on('message', function (data) {
+  console.log(data);
+ });
+ // also in client // socket.emit('send', { room: room, message: message });
+
+*/
+  socket.on("send message", message => {
+    console.log("message Changed to: ", message);
+    io.sockets.emit("send message", message);
+  });
+
+  socket.on("new user", username => {
+    console.log("new user joined ", username);
+    socket.username = username;
+    io.sockets.emit("new user", username);
+
+    onlineUsers.push(username);
+    io.sockets.emit("online users", onlineUsers);
+  });
+
+  // disconnect is fired when a client leaves the server
+  socket.on("disconnect", () => {
+    console.log("user disconnected");
+
+    console.log("disconnected ########" + socket.username);
+    onlineUsers = onlineUsers.filter(usr => usr != socket.username);
+    io.sockets.emit("online users", onlineUsers);
+  });
+});
+onlineUsers = [];
+
+//---
+
+// run API on designated port (3000 in this case)
+// app.listen(port, () => {
+//   console.log('listening on port ' + port)
+// })
+server.listen(expressPort, () =>
+  console.log(`Listening on socketPort ${expressPort}`)
+);
 // needed for testing
 module.exports = app
