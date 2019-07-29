@@ -148,8 +148,8 @@ onlineUsers = [];
 // app.listen(port, () => {
 //   console.log('listening on port ' + port)
 // })
-server.listen(expressPort, () =>
-  console.log(`Listening on socketPort ${expressPort}`)
+server.listen(port, () =>
+  console.log(`Listening on socketPort ${port}`)
 );
 // needed for testing
 module.exports = app
