@@ -16,7 +16,7 @@ router.get("/chatrooms", requireToken, (req, res, next) => {
         .then(rooms => res.status(200).json({rooms: rooms}))
         .catch(next)
 
-  res.send({ response: "I am alive" }).status(200);
+//   res.send({ response: "I am alive" }).status(200);
 });
 
 
@@ -27,7 +27,7 @@ router.post("/chatrooms", requireToken, (req, res, next) => {
   Chatroom.create(req.body.room)
     .then(room => {
         res.status(201).json({room: room.toObject()}) // send the room id back to react 
-        // redirect("/chatroom"); 
+    
     })
     .catch(next)
     
@@ -40,7 +40,7 @@ router.get("/chatrooms/:id", requireToken, (req, res)=>{
         .then(room => {
             res.status(200).json({room: room.toObject()})
         })
-        .catch(next)
+        // .catch(next)
 })
 
 

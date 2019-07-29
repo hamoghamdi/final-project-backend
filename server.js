@@ -7,6 +7,7 @@ const cors = require('cors')
 // require route files
 const exampleRoutes = require('./app/routes/example_routes')
 const userRoutes = require('./app/routes/user_routes')
+const chatroomRoutes = require('./app/routes/chatroom_routes')
 
 // require error handling middleware
 const errorHandler = require('./lib/error_handler')
@@ -68,6 +69,7 @@ app.use(requestLogger)
 // register route files
 app.use(exampleRoutes)
 app.use(userRoutes)
+app.use(chatroomRoutes)
 
 // register error handling middleware
 // note that this comes after the route middlewares, because it needs to be
@@ -76,47 +78,67 @@ app.use(errorHandler)
 
 const io = socketIO(server);
 
-let onlineUsers = [];
+let onlineUsers = []; // {room: , userName: }
 
-io.on("connection", socket => {
+io.sockets.on("connection", socket => {
   console.log("New client connected");
+  
+  socket.on("subscribe", (data)=> {
+    console.log("joining room", data.room);
+    socket.join(data.room);
+    // recive room and username from prompt
+    // data =  {room: data.room, userName: data.userName}
+    socket.roomId = data.room
+    socket.username = data
+    onlineUsers.push(data);
+    io.sockets.in(data.room).emit("online users", onlineUsers);
 
-  socket.on("subscribe", function(room) {
-    console.log("joining room", room);
-    socket.join(room);
+
   });
-/*
- socket.on('send', function(data) {
-  io.sockets.in(data.room).emit("message", data);
- }
-  // in client //  socket.on('message', function (data) {
-  console.log(data);
- });
- // also in client // socket.emit('send', { room: room, message: message });
+ 
 
-*/
-  socket.on("send message", message => {
-    console.log("message Changed to: ", message);
-    io.sockets.emit("send message", message);
+  //
+  
+
+  // socket.on("unsubscribe", (room)=> {
+  //   console.log("leaving room", room);
+  //   /*
+  //    console.log("disconnected ########" + socket.username);
+  //    onlineUsers = onlineUsers.filter(usr => usr != socket.username);
+  //    io.sockets.in(room).emit("online users", onlineUsers);
+  //   */
+
+  //   socket.leave(room);
+  // });
+
+
+  socket.on("send", (data)=> {
+    console.log(data)
+    io.sockets.in(data.room).emit("message", data);
+  })
+
+  /* 
+  socket.on("new user", data => {
+    console.log("new user joined ", data.userName);
+    socket.username = data.userName;
+    io.sockets.emit("new user", data.userName);
+    
+
+    onlineUsers.push(data.userName);
+    io.sockets.in(data.room).emit("online users", onlineUsers);
   });
-
-  socket.on("new user", username => {
-    console.log("new user joined ", username);
-    socket.username = username;
-    io.sockets.emit("new user", username);
-
-    onlineUsers.push(username);
-    io.sockets.emit("online users", onlineUsers);
-  });
+  */
 
   // disconnect is fired when a client leaves the server
-  socket.on("disconnect", () => {
+  // once insted of on
+  socket.once("disconnect", () => {
     console.log("user disconnected");
-
     console.log("disconnected ########" + socket.username);
-    onlineUsers = onlineUsers.filter(usr => usr != socket.username);
-    io.sockets.emit("online users", onlineUsers);
+    onlineUsers = onlineUsers.filter(element => element != socket.username);
+    io.sockets.in(socket.roomId).emit("online users", onlineUsers);
+    
   });
+
 });
 onlineUsers = [];
 
