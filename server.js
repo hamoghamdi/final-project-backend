@@ -78,38 +78,51 @@ app.use(errorHandler)
 
 const io = socketIO(server);
 
-let onlineUsers = []; // {room: , userName: }
-
+let onlineUsers = {}; // {room: [ {socketId: "value", username: "value" } ]
 io.sockets.on("connection", socket => {
   console.log("New client connected");
-  
+  // let room
+  // let socketId = socket.id
   socket.on("subscribe", (data)=> {
     console.log("joining room", data.room);
     socket.join(data.room);
+    // room = data.room
+    // if (socket.rooms) {
+    //   socket.rooms[data.room] = data.room
+    // } else {
+    //   socket.rooms = {[data.room]: data.room}
+    // }
     // recive room and username from prompt
     // data =  {room: data.room, userName: data.userName}
-    socket.roomId = data.room
-    socket.username = data
-    onlineUsers.push(data);
-    io.sockets.in(data.room).emit("online users", onlineUsers);
+    // socket.roomId = data.room
+    // room = data.room
+    // socket.username = data
+    // data.id = socket.id
+    // onlineUsers.push(data);
+    if (onlineUsers[data.room]) {
+      onlineUsers[data.room].push({socketId: socket.id, username: data.userName});
+    } else {
+      onlineUsers[data.room] = [{
+        socketId: socket.id,
+        username: data.userName
+      }];
+    }
+
+    // console.log('online users', onlineUsers)
+    // socketUsers[data.room] = [];
+    // for (let member in io.sockets.adapter.rooms[data.room]) {
+    //   socketUsers[data.room].push(member);
+    // }
+    // console.log("sockets users sign in", io.sockets.adapter.rooms[data.room]);
+    io.sockets.in(data.room).emit("online users", onlineUsers[data.room]);
 
 
   });
- 
 
-  //
-  
-
-  // socket.on("unsubscribe", (room)=> {
-  //   console.log("leaving room", room);
-  //   /*
-  //    console.log("disconnected ########" + socket.username);
-  //    onlineUsers = onlineUsers.filter(usr => usr != socket.username);
-  //    io.sockets.in(room).emit("online users", onlineUsers);
-  //   */
-
-  //   socket.leave(room);
-  // });
+  socket.on("unsubscribe", (room)=> {
+    console.log("leaving room unsubscribe", room);
+    socket.leave(room);
+  });
 
 
   socket.on("send", (data)=> {
@@ -117,25 +130,41 @@ io.sockets.on("connection", socket => {
     io.sockets.in(data.room).emit("message", data);
   })
 
-  /* 
-  socket.on("new user", data => {
-    console.log("new user joined ", data.userName);
-    socket.username = data.userName;
-    io.sockets.emit("new user", data.userName);
-    
+    socket.on("forceDisconnect", (roomId) => {
+      // console.log("hello", roomid);
+      // console.log("disc roomid", roomid)
+      // console.log("disc socket.id", socket.id)
+      // console.log("online users", onlineUsers)
+      // console.log("original socketid", socketId);
+      // let originalSocket = io.sockets.connected[socketId]
+      socket.leave(roomId);
+      onlineUsers[roomId] = onlineUsers[roomId].filter(user => user.socketId !== socket.id)
 
-    onlineUsers.push(data.userName);
-    io.sockets.in(data.room).emit("online users", onlineUsers);
-  });
-  */
+      io.sockets.in(roomId).emit("online users", onlineUsers[roomId]);
 
+      // console.log("disc sockets users", io.sockets.adapter.rooms[roomid]); 
+      // socket.leave(roomid);
+      // console.log("sockets users",io.sockets.adapter.rooms[roomid]); 
+      // console.log('socketId', socketId)
+      // console.log("onlineUsers", onlineUsers);
+      // socket.disconnect()
+      // io.sockets.in(data.room).emit("message", data);
+    });
   // disconnect is fired when a client leaves the server
   // once insted of on
-  socket.once("disconnect", () => {
+  socket.on("disconnect", () => {
     console.log("user disconnected");
-    console.log("disconnected ########" + socket.username);
-    onlineUsers = onlineUsers.filter(element => element != socket.username);
-    io.sockets.in(socket.roomId).emit("online users", onlineUsers);
+    // console.log("sockets users", io.sockets.adapter.rooms[data.room]);    
+    // for ( let roomId in io.sockets.adapter.rooms) {
+      // socket.leave(onlineUsers[socket.id])
+    // }
+    // onlineUsers = onlineUsers.filter(element => element != socket.username);
+    // console.log("leaving room id ", room);
+    // console.log("leaving room username ", socket.username);
+
+    // socket.leave(Object.keys(socket.rooms)[0]);
+
+    // io.sockets.in(socket.roomId).emit("online users", onlineUsers);
     
   });
 
@@ -153,3 +182,15 @@ server.listen(port, () =>
 );
 // needed for testing
 module.exports = app
+
+  /* 
+  socket.on("new user", data => {
+    console.log("new user joined ", data.userName);
+    socket.username = data.userName;
+    io.sockets.emit("new user", data.userName);
+    
+
+    onlineUsers.push(data.userName);
+    io.sockets.in(data.room).emit("online users", onlineUsers);
+  });
+  */
