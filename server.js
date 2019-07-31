@@ -119,24 +119,20 @@ io.sockets.on("connection", socket => {
 
   });
 
-  socket.on("unsubscribe", (room)=> {
-    console.log("leaving room unsubscribe", room);
-    socket.leave(room);
-  });
-
 
   socket.on("send", (data)=> {
     console.log(data)
     io.sockets.in(data.room).emit("message", data);
   })
 
-    socket.on("forceDisconnect", (roomId) => {
+    socket.on("forceDisconnect", (roomId, usrname) => {
       // console.log("hello", roomid);
       // console.log("disc roomid", roomid)
       // console.log("disc socket.id", socket.id)
       // console.log("online users", onlineUsers)
       // console.log("original socketid", socketId);
       // let originalSocket = io.sockets.connected[socketId]
+      console.log("leaving", usrname)
       socket.leave(roomId);
       onlineUsers[roomId] = onlineUsers[roomId].filter(user => user.socketId !== socket.id)
 
